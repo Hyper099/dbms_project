@@ -5,6 +5,7 @@ const studentRouter = require("./Routes/student");
 const instructorRouter = require("./Routes/instructor");
 const courseRouter = require("./Routes/course");
 const authRouter = require("./Routes/auth"); // Import new auth route
+const paymentRouter = require("./Routes/payment");
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use("/api/student", studentRouter);
 app.use("/api/instructor", instructorRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/payment", paymentRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

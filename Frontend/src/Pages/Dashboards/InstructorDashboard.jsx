@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import API from "../utils/api";
+import API from "../../utils/api";
 
 export default function InstructorDashboard() {
    const [courses, setCourses] = useState([]);
-   const [stats, setStats] = useState({
-      totalStudents: 0,
-      totalCourses: 0,
-      averageRating: 0,
-   });
+   // const [stats, setStats] = useState({
+   //    totalStudents: 0,
+   //    totalCourses: 0,
+   //    averageRating: 0,
+   // });
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
    const [showNewCourseForm, setShowNewCourseForm] = useState(false);
@@ -24,17 +24,17 @@ export default function InstructorDashboard() {
          const token = localStorage.getItem("token");
          try {
             // Fetch instructor's courses
-            const coursesResponse = await API.get("/instructor/courses", {
+            const coursesResponse = await API.get("/instructor/course", {
                headers: { token },
             });
-
-            // Fetch instructor stats
-            const statsResponse = await API.get("/instructor/stats", {
-               headers: { token },
-            });
+            console.log(coursesResponse.data);
+            // // Fetch instructor stats
+            // const statsResponse = await API.get("/instructor/stats", {
+            //    headers: { token },
+            // });
 
             setCourses(coursesResponse.data);
-            setStats(statsResponse.data);
+            // setStats(statsResponse.data);
             setLoading(false);
          } catch (err) {
             setError("Failed to load dashboard data");
@@ -52,16 +52,24 @@ export default function InstructorDashboard() {
 
    const handleCreateCourse = async (e) => {
       e.preventDefault();
+      const formattedCourse = {
+         ...newCourse,
+         price: Number(newCourse.price), // Convert to number
+         duration: Number(newCourse.duration) // Convert to number
+      };
+
+      console.log("Sending data:", formattedCourse);
       try {
-         await API.post("/instructor/courses", newCourse, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+         const token = localStorage.getItem("token");
+         await API.post("/course/add", formattedCourse, {
+            headers: { token },
          });
 
          // Refresh courses list
-         const response = await API.get("/instructor/courses", {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+         const response = await API.get("/instructor/course", {
+            headers: { token },
          });
-
+         console.log(response.data);
          setCourses(response.data);
          setShowNewCourseForm(false);
          setNewCourse({
@@ -72,7 +80,8 @@ export default function InstructorDashboard() {
             category: "",
          });
       } catch (err) {
-         setError("Failed to create course", err);
+         console.error("Failed to create course:", err.response?.data || err);
+         setError("Failed to create course");
       }
    };
 
@@ -91,7 +100,7 @@ export default function InstructorDashboard() {
 
             {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">{error}</div>}
 
-            {/* Stats Overview */}
+            {/* Stats Overview
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                <div className="bg-white rounded-lg shadow p-6">
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">Total Students</h3>
@@ -105,7 +114,7 @@ export default function InstructorDashboard() {
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">Average Rating</h3>
                   <p className="text-3xl font-bold text-yellow-600">{stats.averageRating.toFixed(1)}/5.0</p>
                </div>
-            </div>
+            </div> */}
 
             {/* Course Management */}
             <div className="bg-white rounded-lg shadow mb-8">
@@ -158,7 +167,7 @@ export default function InstructorDashboard() {
                               />
                            </div>
                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Price (Rs.)</label>
                               <input
                                  type="number"
                                  name="price"
@@ -225,7 +234,7 @@ export default function InstructorDashboard() {
                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                       ${course.price}
+                                       Rs. {course.price}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                        <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -238,57 +247,6 @@ export default function InstructorDashboard() {
                         </table>
                      </div>
                   )}
-               </div>
-            </div>
-
-            {/* Recent Notifications */}
-            <div className="bg-white rounded-lg shadow">
-               <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-800">Recent Notifications</h2>
-               </div>
-               <div className="p-6">
-                  <ul className="divide-y divide-gray-200">
-                     <li className="py-4">
-                        <div className="flex items-start">
-                           <div className="flex-shrink-0 bg-blue-100 rounded-full p-2">
-                              <svg className="h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                 <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                 <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                              </svg>
-                           </div>
-                           <div className="ml-4">
-                              <p className="text-sm font-medium text-gray-900">New student enrolled in "React Fundamentals"</p>
-                              <p className="text-sm text-gray-500">2 hours ago</p>
-                           </div>
-                        </div>
-                     </li>
-                     <li className="py-4">
-                        <div className="flex items-start">
-                           <div className="flex-shrink-0 bg-yellow-100 rounded-full p-2">
-                              <svg className="h-5 w-5 text-yellow-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
-                              </svg>
-                           </div>
-                           <div className="ml-4">
-                              <p className="text-sm font-medium text-gray-900">You received a new review (4★) on "JavaScript for Beginners"</p>
-                              <p className="text-sm text-gray-500">Yesterday</p>
-                           </div>
-                        </div>
-                     </li>
-                     <li className="py-4">
-                        <div className="flex items-start">
-                           <div className="flex-shrink-0 bg-green-100 rounded-full p-2">
-                              <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                           </div>
-                           <div className="ml-4">
-                              <p className="text-sm font-medium text-gray-900">Monthly payout of $1,245.00 has been processed</p>
-                              <p className="text-sm text-gray-500">March 15, 2025</p>
-                           </div>
-                        </div>
-                     </li>
-                  </ul>
                </div>
             </div>
          </div>

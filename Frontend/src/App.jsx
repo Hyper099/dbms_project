@@ -1,11 +1,11 @@
 import React from 'react';
 import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 import Navbar from './Common/Navbar';
-import InstructorDashboard from './Components/InstructorDashboard';
-import StudentDashboard from './Components/StudentDashboard';
 import AboutUs from './Pages/AboutUs';
 import ContactUs from './Pages/ContactUs';
 import Courses from './Pages/Courses/Course';
+import InstructorDashboard from './Pages/Dashboards/InstructorDashboard';
+import StudentDashboard from './Pages/Dashboards/StudentDashboard';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/Login';
 import PageNotFound from './Pages/PageNotFound';

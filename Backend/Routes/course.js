@@ -1,23 +1,26 @@
 const { Router } = require("express");
 const db = require("../Database/database");
-const { CourseSchema } = require("../Database/Schema");
+const { CourseSchema } = require("../Database/schema");
 const { instructorAuth, studentAuth } = require("../Middleware/authMiddleware");
 
 const courseRouter = Router();
 
 // Add Course
 courseRouter.post("/add", instructorAuth, (req, res) => {
+   console.log("Received data:", req.body);
+
    const result = CourseSchema.safeParse(req.body);
    if (!result.success) {
+      console.error("Validation error:", result.error.format());
       return res.status(400).json({ error: result.error.format() });
    }
 
-   const { title, description, price } = result.data;
-   const instructor_id = req.instructor.id; // Corrected
+   const { title, description, price, category, duration } = result.data;
+   const instructorId = req.instructor.id;
 
    db.query(
-      "INSERT INTO COURSES (title, description, price, instructor_id) VALUES (?, ?, ?, ?)",
-      [title, description, price, instructor_id],
+      "INSERT INTO COURSES (title, description, price, instructor_id, category, duration) VALUES (?, ?, ?, ?, ?, ?)",
+      [title, description, price, instructorId, category, duration],
       (err) => {
          if (err) {
             console.error(err);

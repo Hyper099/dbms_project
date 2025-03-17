@@ -3,12 +3,11 @@ const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const db = require("../Database/database");
-const { SignUpSchema, LoginSchema } = require("../Database/Schema");
+const { SignUpSchema, LoginSchema } = require("../Database/schema");
 const { studentAuth } = require("../Middleware/authMiddleware");
 
 const studentRouter = Router();
 
-// Signup Route
 // Signup Route
 studentRouter.post("/signup", async (req, res) => {
    try {
@@ -80,7 +79,7 @@ studentRouter.post("/signin", async (req, res) => {
          const isMatch = await bcrypt.compare(password, student.password);
 
          if (isMatch) {
-            const token = jwt.sign({ id: student.id }, process.env.JWT_STUDENT_SECRET, { expiresIn: "1h" });
+            const token = jwt.sign({ id: student.id }, process.env.JWT_STUDENT_SECRET);
             return res.status(200).json({ token, message: "Login successful." });
          } else {
             return res.status(401).json({ message: "Invalid Credentials." });
@@ -92,6 +91,8 @@ studentRouter.post("/signin", async (req, res) => {
    }
 });
 
+
+// Details of the Student.
 studentRouter.get("/details", studentAuth, async (req, res) => {
    try {
       const student = req.student;
@@ -114,6 +115,63 @@ studentRouter.get("/details", studentAuth, async (req, res) => {
    }
 });
 
+// Get the Courses student is enrolled in.
+studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
+   const studentId = req.student.id;
 
+   db.query(
+      `SELECT
+         C.id, C.title, C.description, C.category, C.price, 
+         C.access_period, C.instructor_id, C.created_at,
+         E.completed_lessons, E.total_lessons
+      FROM ENROLLMENT E
+      JOIN COURSES C ON E.course_id = C.id
+      WHERE E.student_id = ?`,
+      [studentId],
+      (err, result) => {
+         if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Database error" });
+         }
+
+         if (result.length === 0) {
+            return res.status(404).json({ error: "No courses found" });
+         }
+
+         res.json(result);
+      }
+   );
+});
+
+
+// Get stats of a student.
+studentRouter.get("/stats", studentAuth, async (req, res) => {
+   const studentId = req.student.id;
+
+   db.query(
+      `SELECT
+         COUNT(CASE WHEN status = 'Completed' THEN 1 END) AS completedCourses,
+         COUNT(CASE WHEN status = 'Active' THEN 1 END) AS inProgressCourses,
+         COUNT(CASE WHEN certificate_earned = 1 THEN 1 END) AS certificatesEarned
+      FROM ENROLLMENT WHERE student_id = ?`,
+      [studentId],
+      (err, result) => {
+         if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Database error" });
+         }
+
+         if (result.length === 0) {
+            return res.json({
+               completedCourses: 0,
+               inProgressCourses: 0,
+               certificatesEarned: 0,
+            });
+         }
+
+         res.json(result[0]);
+      }
+   );
+});
 
 module.exports = studentRouter;

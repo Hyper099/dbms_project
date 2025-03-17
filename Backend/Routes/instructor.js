@@ -2,7 +2,7 @@ const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const db = require("../Database/database");
-const { SignUpSchema, LoginSchema } = require("../Database/Schema");
+const { SignUpSchema, LoginSchema } = require("../Database/schema");
 const { instructorAuth } = require("../Middleware/authMiddleware");
 
 const instructorRouter = Router();
@@ -63,7 +63,7 @@ instructorRouter.post("/signin", async (req, res) => {
          const isMatch = await bcrypt.compare(password, instructor.password);
 
          if (isMatch) {
-            const token = jwt.sign({ id: instructor.id }, process.env.JWT_INSTRUCTOR_SECRET, { expiresIn: "1h" });
+            const token = jwt.sign({ id: instructor.id }, process.env.JWT_INSTRUCTOR_SECRET);
             return res.status(200).json({ token, message: "Login successful." });
          } else {
             return res.status(401).json({ message: "Invalid Credentials." });
@@ -97,5 +97,29 @@ instructorRouter.get("/details", instructorAuth, async (req, res) => {
    }
 });
 
+
+// !Route which gives all the courses of that instructor.
+instructorRouter.get("/course", instructorAuth, (req, res) => {
+
+   const instructorId = req.instructor.id;
+   console.log(instructorId);
+
+   db.query(
+      "SELECT * FROM COURSES where instructor_id = ?", [instructorId], (err, result) => {
+         if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Database error" });
+         }
+         console.log("Query result:", result);
+
+         if (result.length === 0) {
+            return res.status(404).json({ error: "No courses found for the instructor" });
+         }
+
+         res.json(result);
+      }
+   );
+
+});
 
 module.exports = instructorRouter;
