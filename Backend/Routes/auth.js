@@ -2,13 +2,14 @@ require("dotenv").config();
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const db = require("../Database/database");
+const connectDatabase = require("../Database/database");
 
 const authRouter = Router();
 
 // Unified Login Route
 authRouter.post("/login", async (req, res) => {
    try {
+      const db = await connectDatabase();
       const { email, password } = req.body;
 
       if (!email || !password) {
@@ -16,36 +17,33 @@ authRouter.post("/login", async (req, res) => {
       }
 
       // Check Student Table
-      db.query("SELECT * FROM STUDENT WHERE email = ?", [email], async (error, studentResults) => {
-         if (error) return res.status(500).json({ message: "Database error." });
+      const [studentResults] = await db.execute("SELECT * FROM STUDENT WHERE email = ?", [email]);
 
-         if (studentResults.length > 0) {
-            const student = studentResults[0];
-            const isMatch = await bcrypt.compare(password, student.password);
+      if (studentResults.length > 0) {
+         const student = studentResults[0];
+         const isMatch = await bcrypt.compare(password, student.password);
 
-            if (isMatch) {
-               const token = jwt.sign({ id: student.id, role: "student" }, process.env.JWT_STUDENT_SECRET, { expiresIn: "1h" });
-               return res.status(200).json({ token, role: "student", message: "Login successful." });
-            }
+         if (isMatch) {
+            const token = jwt.sign({ id: student.id, role: "student" }, process.env.JWT_STUDENT_SECRET);
+            return res.status(200).json({ token, role: "student", message: "Login successful." });
          }
+      }
 
-         // Check Instructor Table
-         db.query("SELECT * FROM INSTRUCTOR WHERE email = ?", [email], async (error, instructorResults) => {
-            if (error) return res.status(500).json({ message: "Database error." });
+      // Check Instructor Table
+      const [instructorResults] = await db.execute("SELECT * FROM INSTRUCTOR WHERE email = ?", [email]);
 
-            if (instructorResults.length > 0) {
-               const instructor = instructorResults[0];
-               const isMatch = await bcrypt.compare(password, instructor.password);
+      if (instructorResults.length > 0) {
+         const instructor = instructorResults[0];
+         const isMatch = await bcrypt.compare(password, instructor.password);
 
-               if (isMatch) {
-                  const token = jwt.sign({ id: instructor.id, role: "instructor" }, process.env.JWT_INSTRUCTOR_SECRET, { expiresIn: "1h" });
-                  return res.status(200).json({ token, role: "instructor", message: "Login successful." });
-               }
-            }
+         if (isMatch) {
+            const token = jwt.sign({ id: instructor.id, role: "instructor" }, process.env.JWT_INSTRUCTOR_SECRET);
+            return res.status(200).json({ token, role: "instructor", message: "Login successful." });
+         }
+      }
 
-            return res.status(401).json({ message: "Invalid Credentials." });
-         });
-      });
+      return res.status(401).json({ message: "Invalid Credentials." });
+
    } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Error during login process." });

@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 import Navbar from './Common/Navbar';
 import AboutUs from './Pages/AboutUs';
+import Cart from './Pages/Cart';
 import ContactUs from './Pages/ContactUs';
 import Courses from './Pages/Courses/Course';
 import InstructorDashboard from './Pages/Dashboards/InstructorDashboard';
@@ -30,6 +31,7 @@ function App() {
         <Route path='/contact' element={<ContactUs />} />
         <Route path='/about' element={<AboutUs />} />
         <Route path="*" element={<PageNotFound />} />
+        <Route path="/cart" element={<Cart />} />
       </Routes>
     </>
   );

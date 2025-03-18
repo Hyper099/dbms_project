@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const db = require("../Database/database");
+const connectDatabase = require("../Database/database");
 const { SignUpSchema, LoginSchema } = require("../Database/schema");
 const { studentAuth } = require("../Middleware/authMiddleware");
 
@@ -11,6 +11,8 @@ const studentRouter = Router();
 // Signup Route
 studentRouter.post("/signup", async (req, res) => {
    try {
+      const db = await connectDatabase();
+
       // Validate request body
       const result = SignUpSchema.safeParse(req.body);
       if (!result.success) {
@@ -20,95 +22,78 @@ studentRouter.post("/signup", async (req, res) => {
       const { email, password, firstName, lastName } = result.data;
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Check if email exists in either STUDENT or INSTRUCTOR tables using a single query
-      db.query(
+      // Check if email exists
+      const [existingUsers] = await db.execute(
          "SELECT email FROM STUDENT WHERE email = ? UNION SELECT email FROM INSTRUCTOR WHERE email = ?",
-         [email, email],
-         (err, results) => {
-            if (err) {
-               console.error(err);
-               return res.status(500).json({ error: "Database error." });
-            }
-
-            if (results.length > 0) {
-               return res.status(400).json({ error: "This email is already in use." });
-            }
-
-            // Now insert the student since email is not found in either table
-            db.query(
-               "INSERT INTO STUDENT (email, password, firstName, lastName) VALUES (?, ?, ?, ?)",
-               [email, hashedPassword, firstName, lastName],
-               (err) => {
-                  if (err) {
-                     return res.status(500).json({ error: "Database error." });
-                  }
-
-                  res.status(201).json({ message: "Student registered successfully." });
-               }
-            );
-         }
+         [email, email]
       );
+
+      if (existingUsers.length > 0) {
+         return res.status(400).json({ error: "This email is already in use." });
+      }
+
+      // Insert new student
+      await db.execute(
+         "INSERT INTO STUDENT (email, password, firstName, lastName) VALUES (?, ?, ?, ?)",
+         [email, hashedPassword, firstName, lastName]
+      );
+
+      res.status(201).json({ message: "Student registered successfully." });
+
    } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Error signing up the student" });
    }
 });
 
+// // Signin Route
+// studentRouter.post("/signin", async (req, res) => {
+//    try {
+//       const db = await connectDatabase();
 
-// Signin Route
-studentRouter.post("/signin", async (req, res) => {
-   try {
-      // Validate request body
-      const result = LoginSchema.safeParse(req.body);
-      if (!result.success) {
-         return res.status(400).json({ error: result.error.format() });
-      }
+//       // Validate request body
+//       const result = LoginSchema.safeParse(req.body);
+//       if (!result.success) {
+//          return res.status(400).json({ error: result.error.format() });
+//       }
 
-      const { email, password } = result.data;
+//       const { email, password } = result.data;
 
-      db.query("SELECT * FROM STUDENT WHERE email = ?", [email], async (error, results) => {
-         if (error) {
-            console.error(error);
-            return res.status(500).json({ message: "Database error." });
-         }
-         if (results.length === 0) {
-            return res.status(404).json({ message: "User not found." });
-         }
+//       const [students] = await db.execute("SELECT * FROM STUDENT WHERE email = ?", [email]);
 
-         const student = results[0];
-         const isMatch = await bcrypt.compare(password, student.password);
+//       if (students.length === 0) {
+//          return res.status(404).json({ message: "User not found." });
+//       }
 
-         if (isMatch) {
-            const token = jwt.sign({ id: student.id }, process.env.JWT_STUDENT_SECRET);
-            return res.status(200).json({ token, message: "Login successful." });
-         } else {
-            return res.status(401).json({ message: "Invalid Credentials." });
-         }
-      });
-   } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error during login process." });
-   }
-});
+//       const student = students[0];
+//       const isMatch = await bcrypt.compare(password, student.password);
 
+//       if (isMatch) {
+//          const token = jwt.sign({ id: student.id }, process.env.JWT_STUDENT_SECRET);
+//          return res.status(200).json({ token, message: "Login successful." });
+//       } else {
+//          return res.status(401).json({ message: "Invalid Credentials." });
+//       }
+//    } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ message: "Error during login process." });
+//    }
+// });
 
 // Details of the Student.
 studentRouter.get("/details", studentAuth, async (req, res) => {
    try {
+      const db = await connectDatabase();
       const student = req.student;
 
-      db.query("SELECT firstName FROM STUDENT WHERE id = ?", [student.id], (error, results) => {
-         if (error) {
-            console.error(error);
-            return res.status(500).json({ error: "Database error" });
-         }
+      const [results] = await db.execute("SELECT firstName FROM STUDENT WHERE id = ?", [student.id]);
 
-         if (results.length === 0) {
-            return res.status(404).json({ error: "Student not found" });
-         }
+      if (results.length === 0) {
+         return res.status(404).json({ error: "Student not found" });
+      }
 
-         res.json({ firstName: results[0].firstName });
-      });
+      res.json({ firstName: results[0].firstName });
+
    } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
@@ -117,61 +102,58 @@ studentRouter.get("/details", studentAuth, async (req, res) => {
 
 // Get the Courses student is enrolled in.
 studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
-   const studentId = req.student.id;
+   try {
+      const db = await connectDatabase();
+      const studentId = req.student.id;
 
-   db.query(
-      `SELECT
-         C.id, C.title, C.description, C.category, C.price, 
-         C.access_period, C.instructor_id, C.created_at,
-         E.completed_lessons, E.total_lessons
-      FROM ENROLLMENT E
-      JOIN COURSES C ON E.course_id = C.id
-      WHERE E.student_id = ?`,
-      [studentId],
-      (err, result) => {
-         if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Database error" });
-         }
+      const [result] = await db.execute(
+         `SELECT
+            C.id, C.title, C.description, C.category, C.price, 
+            C.access_period, C.instructor_id, C.created_at,
+            E.completed_lessons, E.total_lessons
+         FROM ENROLLMENT E
+         JOIN COURSES C ON E.course_id = C.id
+         WHERE E.student_id = ?`,
+         [studentId]
+      );
 
-         if (result.length === 0) {
-            return res.status(404).json({ error: "No courses found" });
-         }
-
-         res.json(result);
+      if (result.length === 0) {
+         return res.status(404).json({ error: "No courses found" });
       }
-   );
-});
 
+      res.json(result);
+
+   } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Database error" });
+   }
+});
 
 // Get stats of a student.
 studentRouter.get("/stats", studentAuth, async (req, res) => {
-   const studentId = req.student.id;
+   try {
+      const db = await connectDatabase();
+      const studentId = req.student.id;
 
-   db.query(
-      `SELECT
-         COUNT(CASE WHEN status = 'Completed' THEN 1 END) AS completedCourses,
-         COUNT(CASE WHEN status = 'Active' THEN 1 END) AS inProgressCourses,
-         COUNT(CASE WHEN certificate_earned = 1 THEN 1 END) AS certificatesEarned
-      FROM ENROLLMENT WHERE student_id = ?`,
-      [studentId],
-      (err, result) => {
-         if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Database error" });
-         }
+      const [result] = await db.execute(
+         `SELECT
+            COUNT(CASE WHEN status = 'Completed' THEN 1 END) AS completedCourses,
+            COUNT(CASE WHEN status = 'Active' THEN 1 END) AS inProgressCourses,
+            COUNT(CASE WHEN certificate_earned = 1 THEN 1 END) AS certificatesEarned
+         FROM ENROLLMENT WHERE student_id = ?`,
+         [studentId]
+      );
 
-         if (result.length === 0) {
-            return res.json({
-               completedCourses: 0,
-               inProgressCourses: 0,
-               certificatesEarned: 0,
-            });
-         }
+      res.json(result.length > 0 ? result[0] : {
+         completedCourses: 0,
+         inProgressCourses: 0,
+         certificatesEarned: 0,
+      });
 
-         res.json(result[0]);
-      }
-   );
+   } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Database error" });
+   }
 });
 
 module.exports = studentRouter;

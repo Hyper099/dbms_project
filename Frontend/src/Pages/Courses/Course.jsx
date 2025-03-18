@@ -9,6 +9,7 @@ export default function Courses() {
    const [error, setError] = useState(null);
    const [searchTerm, setSearchTerm] = useState("");
    const [filterPrice, setFilterPrice] = useState(null);
+   const [cart, setCart] = useState([]);
 
    useEffect(() => {
       const fetchCourses = async () => {
@@ -25,105 +26,46 @@ export default function Courses() {
       fetchCourses();
    }, []);
 
-   const handlePayment = async () => {
-      if (!selectedCourse) return;
-
-      try {
-         const token = localStorage.getItem("token");
-         if (!token) {
-            alert("Unauthorized: Please log in to enroll.");
-            return;
+   const addToCart = async (course) => {
+      if (!isInCart(course.id)) {
+         try {
+            const token = localStorage.getItem("token");
+            await API.post("/cart", { courseId: course.id }, {
+               headers: { token }
+            });
+            setCart([...cart, course]);
+            alert("Course added to cart!");
+         } catch (error) {
+            console.error("Error adding course to cart:", error);
+            alert("Failed to add course to cart.");
          }
-
-         if (!window.Razorpay) {
-            alert("Payment gateway is not loaded. Please refresh the page.");
-            return;
-         }
-
-         // Step 1: Create Order
-         const { data } = await API.post("/payment/create-order",
-            {
-               courseId: selectedCourse.id,
-               amount: selectedCourse.price
-            },
-            { headers: { token } }
-         );
-
-         // If already enrolled, stop payment
-         if (data.error) {
-            alert(data.error);
-            return;
-         }
-
-         // Step 2: Open Razorpay Modal
-         const options = {
-            key: "rzp_test_pOuJ0Zs5X1BfNr", //razorpay key_id.
-            amount: data.amount,
-            currency: "INR",
-            name: "Course Payment",
-            description: selectedCourse.title,
-            order_id: data.id,
-            handler: async function (response) {
-               try {
-                  // Step 3: Verify Payment
-                  const verificationResponse = await API.post("/payment/verify-payment", {
-                     razorpay_payment_id: response.razorpay_payment_id,
-                     razorpay_order_id: response.razorpay_order_id,
-                     razorpay_signature: response.razorpay_signature,
-                     amount: selectedCourse.price,
-                     courseId: selectedCourse.id // Send courseId to enroll
-                  });
-
-                  alert("Payment Successful!");
-                  console.log(verificationResponse.data);
-
-                  // Step 4: Enroll Student
-                  try {
-                     const enrollResponse = await API.post(
-                        "/course/enroll",
-                        { courseId: selectedCourse.id },
-                        { headers: { token } }
-                     );
-
-                     alert(enrollResponse.data.message || "Enrollment successful!");
-
-                     // Refresh enrolled courses
-                     try {
-                        const enrolledResponse = await API.get("/student/course/enrolled", {
-                           headers: { token }
-                        });
-                        setEnrolledCourses(enrolledResponse.data.map(course => course.id));
-                     } catch (error) {
-                        console.error("Error refreshing enrolled courses:", error);
-                     }
-
-                     setSelectedCourse(null); // Close modal
-                  } catch (enrollError) {
-                     console.error("Enrollment failed:", enrollError);
-                     alert("Payment was successful, but enrollment failed. Please contact support.");
-                  }
-
-               } catch (error) {
-                  console.error("Payment verification failed:", error);
-                  alert("Payment verification failed. Please contact support.");
-               }
-            },
-            prefill: {
-               name: "User Name",
-               email: "user@example.com",
-               contact: "9999999999"
-            },
-            theme: {
-               color: "#6366F1"
-            }
-         };
-
-         const razorpay = new window.Razorpay(options);
-         razorpay.open();
-      } catch (error) {
-         console.error("Payment Error:", error);
-         alert(error.response?.data?.error || "Payment failed. Please try again.");
+      } else {
+         alert("This course is already in your cart.");
       }
+   };
+
+   // Add this after the other useEffect hooks
+   useEffect(() => {
+      const fetchCartItems = async () => {
+         const token = localStorage.getItem("token");
+         if (token) {
+            try {
+               const response = await API.get("/cart", {
+                  headers: { token }
+               });
+               setCart(response.data);
+            } catch (error) {
+               console.error("Error fetching cart items:", error);
+               // Don't set error state here to avoid disrupting the main courses display
+            }
+         }
+      };
+
+      fetchCartItems();
+   }, []);
+
+   const isInCart = (courseId) => {
+      return cart.some(item => item.id === courseId);
    };
 
    //! To fetch Enrolled Courses.
@@ -342,12 +284,19 @@ export default function Courses() {
                                  >
                                     Enrolled
                                  </button>
+                              ) : isInCart(selectedCourse.id) ? (
+                                 <button
+                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg cursor-default"
+                                    disabled
+                                 >
+                                    Added to Cart
+                                 </button>
                               ) : (
                                  <button
                                     className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-                                    onClick={handlePayment}
+                                    onClick={() => addToCart(selectedCourse)}
                                  >
-                                    Enroll Now
+                                    Add to Cart
                                  </button>
                               )}
                            </div>

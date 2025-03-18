@@ -4,8 +4,9 @@ const express = require("express");
 const studentRouter = require("./Routes/student");
 const instructorRouter = require("./Routes/instructor");
 const courseRouter = require("./Routes/course");
-const authRouter = require("./Routes/auth"); // Import new auth route
+const authRouter = require("./Routes/auth");
 const paymentRouter = require("./Routes/payment");
+const cartRouter = require("./Routes/cart");
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/api/instructor", instructorRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/cart", cartRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

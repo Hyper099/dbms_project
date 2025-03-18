@@ -1,27 +1,31 @@
 require("dotenv").config();
+const mysql = require("mysql2/promise");
 
-const mysql = require('mysql2');
+let db;
 
-// Create connection to the mysql database
-const db = mysql.createConnection({
-   host: process.env.MYSQL_ADDON_HOST,
-   port: process.env.MYSQL_ADDON_PORT,
-   user: process.env.MYSQL_ADDON_USER,
-   password: process.env.MYSQL_ADDON_PASSWORD,
-   database: process.env.MYSQL_ADDON_DB
+async function connectDatabase() {
+   if (!db) { // If no connection exists, create one
+      try {
+         db = await mysql.createConnection({
+            host: process.env.MYSQLHOST,
+            user: process.env.MYSQLUSER,
+            password: process.env.MYSQLPASSWORD,
+            database: "dbms_project",
+         });
 
-   // host: process.env.MYSQLHOST,
-   // user: process.env.MYSQLUSER,
-   // password: process.env.MYSQLPASSWORD,
-   // database: 'dbms_project'
-});
-
-db.connect((err) => {
-   if (err) {
-      console.error('Error connecting to MySQL:', err);
-      process.exit(1);
+         console.log("✅ Connected to MySQL Database");
+      } catch (err) {
+         console.error("❌ Error connecting to MySQL:", err);
+         process.exit(1);
+      }
    }
-   console.log(`✅ Connected to MySQL Database `);
-});
+   return db;
+}
 
-module.exports = db;
+module.exports = connectDatabase;
+
+// host: process.env.MYSQL_ADDON_HOST,
+// port: process.env.MYSQL_ADDON_PORT,
+// user: process.env.MYSQL_ADDON_USER,
+// password: process.env.MYSQL_ADDON_PASSWORD,
+// database: process.env.MYSQL_ADDON_DB

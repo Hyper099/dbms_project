@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const db = require("../Database/database");
+const connectDatabase = require("../Database/database");
 const { SignUpSchema, LoginSchema } = require("../Database/schema");
 const { instructorAuth } = require("../Middleware/authMiddleware");
 
@@ -17,109 +17,61 @@ instructorRouter.post("/signup", async (req, res) => {
 
       const { email, password, firstName, lastName } = result.data;
       const hashedPassword = await bcrypt.hash(password, 10);
-      db.query(
-         "SELECT * FROM STUDENT WHERE email = ? UNION SELECT * FROM INSTRUCTOR WHERE email = ? ", [email, email], (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error." });
+      const db = await connectDatabase();
 
-            if (result.length > 0) {
-               return res.status(409).json({ message: "Email is already being used." });
-            }
+      const [existingUsers] = await db.execute(
+         "SELECT * FROM STUDENT WHERE email = ? UNION SELECT * FROM INSTRUCTOR WHERE email = ?",
+         [email, email]
+      );
 
-            db.query(
-               "INSERT INTO INSTRUCTOR (email, password, firstName, lastName) VALUES (?, ?, ?, ?)",
-               [email, hashedPassword, firstName, lastName],
-               (err) => {
-                  if (err) {
-                     return res.status(500).json({ error: "Instructor already exists or database error." });
-                  }
-                  res.status(201).json({ message: "Instructor Registered Successfully." });
-               }
-            );
-         }
-      )
+      if (existingUsers.length > 0) {
+         return res.status(409).json({ message: "Email is already being used." });
+      }
+
+      await db.execute(
+         "INSERT INTO INSTRUCTOR (email, password, firstName, lastName) VALUES (?, ?, ?, ?)",
+         [email, hashedPassword, firstName, lastName]
+      );
+
+      res.status(201).json({ message: "Instructor Registered Successfully." });
    } catch (err) {
       console.error(err);
       res.status(500).json({ message: "Error signing up the instructor." });
    }
 });
 
-// Signin Route
-instructorRouter.post("/signin", async (req, res) => {
-   try {
-      const result = LoginSchema.safeParse(req.body);
-      if (!result.success) {
-         return res.status(400).json({ error: result.error.format() });
-      }
-
-      const { email, password } = result.data;
-
-      db.query("SELECT * FROM INSTRUCTOR WHERE email = ?", [email], async (error, results) => {
-         if (error) return res.status(500).json({ message: "Database error." });
-         if (results.length === 0) {
-            return res.status(404).json({ message: "Instructor not found." });
-         }
-
-         const instructor = results[0];
-         const isMatch = await bcrypt.compare(password, instructor.password);
-
-         if (isMatch) {
-            const token = jwt.sign({ id: instructor.id }, process.env.JWT_INSTRUCTOR_SECRET);
-            return res.status(200).json({ token, message: "Login successful." });
-         } else {
-            return res.status(401).json({ message: "Invalid Credentials." });
-         }
-      });
-   } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Error during login process." });
-   }
-});
-
+// Get Instructor Details
 instructorRouter.get("/details", instructorAuth, async (req, res) => {
    try {
-      const instructor = req.instructor;
+      const db = await connectDatabase();
+      const [results] = await db.execute("SELECT firstName FROM INSTRUCTOR WHERE id = ?", [req.instructor.id]);
 
-      db.query("SELECT firstName FROM INSTRUCTOR WHERE id = ?", [instructor.id], (error, results) => {
-         if (error) {
-            console.error(error);
-            return res.status(500).json({ error: "Database error" });
-         }
+      if (results.length === 0) {
+         return res.status(404).json({ error: "Instructor not found" });
+      }
 
-         if (results.length === 0) {
-            return res.status(404).json({ error: "Instructor not found" });
-         }
-
-         res.json({ firstName: results[0].firstName });
-      });
+      res.json({ firstName: results[0].firstName });
    } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
    }
 });
 
+// Get Instructor Courses
+instructorRouter.get("/course", instructorAuth, async (req, res) => {
+   try {
+      const db = await connectDatabase();
+      const [courses] = await db.execute("SELECT * FROM COURSES WHERE instructor_id = ?", [req.instructor.id]);
 
-// !Route which gives all the courses of that instructor.
-instructorRouter.get("/course", instructorAuth, (req, res) => {
-
-   const instructorId = req.instructor.id;
-   console.log(instructorId);
-
-   db.query(
-      "SELECT * FROM COURSES where instructor_id = ?", [instructorId], (err, result) => {
-         if (err) {
-            console.error(err);
-            return res.status(500).json({ error: "Database error" });
-         }
-         console.log("Query result:", result);
-
-         if (result.length === 0) {
-            return res.status(404).json({ error: "No courses found for the instructor" });
-         }
-
-         res.json(result);
+      if (courses.length === 0) {
+         return res.status(404).json({ error: "No courses found for the instructor" });
       }
-   );
 
+      res.json(courses);
+   } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Database error" });
+   }
 });
 
 module.exports = instructorRouter;

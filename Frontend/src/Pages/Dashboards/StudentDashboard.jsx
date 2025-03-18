@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../../utils/api";
 
 export default function StudentDashboard() {
@@ -11,6 +12,11 @@ export default function StudentDashboard() {
    });
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState("");
+
+   const navigate = useNavigate();
+   const navigateToCart = () => {
+      navigate('/cart');
+   };
 
    useEffect(() => {
       const fetchData = async () => {
@@ -69,7 +75,18 @@ export default function StudentDashboard() {
    return (
       <div className="bg-gray-50 min-h-screen">
          <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Student Dashboard</h1>
+            <div className="flex justify-between items-center mb-6">
+               <h1 className="text-3xl font-bold text-gray-800">Student Dashboard</h1>
+               <button
+                  onClick={navigateToCart}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded flex items-center"
+               >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  View Cart
+               </button>
+            </div>
 
             {errorMessage}
 
@@ -86,6 +103,8 @@ export default function StudentDashboard() {
                   </div>
                ))}
             </div>
+
+
 
             {/* Enrolled Courses */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
