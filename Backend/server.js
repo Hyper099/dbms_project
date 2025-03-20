@@ -7,6 +7,8 @@ const courseRouter = require("./Routes/course");
 const authRouter = require("./Routes/auth");
 const paymentRouter = require("./Routes/payment");
 const cartRouter = require("./Routes/cart");
+const assignmentRouter = require("./Routes/assignment");
+const assessmentRouter = require("./Routes/assessment");
 
 const app = express();
 
@@ -21,6 +23,10 @@ app.use("/api/course", courseRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/cart", cartRouter);
+app.use("/api/assignment", assignmentRouter);
+
+//! not using this route right now.
+// app.use("/api/assessment", assessmentRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;
