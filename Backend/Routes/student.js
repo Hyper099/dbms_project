@@ -20,7 +20,7 @@ studentRouter.post("/signup", async (req, res) => {
       }
 
       const { email, password, firstName, lastName } = result.data;
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 10); //1234567.
 
       // Check if email exists
       const [existingUsers] = await db.execute(

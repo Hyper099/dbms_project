@@ -36,7 +36,7 @@ function studentAuth(req, res, next) {
             return res.status(403).json({ error: "Forbidden: Invalid token" });
          }
 
-         req.student = decoded;
+         req.student = decoded; // id
          next();
       });
    } catch (err) {

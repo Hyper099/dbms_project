@@ -65,8 +65,6 @@ paymentRouter.post("/create-order", studentAuth, async (req, res) => {
    }
 });
 
-
-
 // Verify Payment
 paymentRouter.post("/verify-payment", studentAuth, async (req, res) => {
    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, amount } = req.body;
