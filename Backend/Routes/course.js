@@ -140,4 +140,21 @@ courseRouter.post("/enroll", studentAuth, async (req, res) => {
    }
 });
 
+courseRouter.get("/enrolled-students/:id", instructorAuth, async (req, res) => {
+   try {
+      const courseId = req.params.id;
+      const db = await connectDatabase();
+      const [results] = await db.execute(
+         "SELECT S.firstName, S.lastName, E.enrollment_date, E.expiry_date, E.status FROM STUDENT S JOIN ENROLLMENT E ON S.id = E.student_id WHERE E.course_id =?",
+         [courseId]
+      );
+
+      res.status(200).json(results);
+   } catch (err) {
+      console.error("Error fetching enrolled students:", err);
+      res.status(500).json({ error: "Failed to fetch enrolled students." });
+   }
+
+})
+
 module.exports = courseRouter;

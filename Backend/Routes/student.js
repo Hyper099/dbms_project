@@ -86,13 +86,16 @@ studentRouter.get("/details", studentAuth, async (req, res) => {
       const db = await connectDatabase();
       const student = req.student;
 
-      const [results] = await db.execute("SELECT firstName FROM STUDENT WHERE id = ?", [student.id]);
+      const [results] = await db.execute("SELECT firstName,lastName FROM STUDENT WHERE id = ?", [student.id]);
 
       if (results.length === 0) {
          return res.status(404).json({ error: "Student not found" });
       }
 
-      res.json({ firstName: results[0].firstName });
+      res.json({
+         firstName: results[0].firstName,
+         lastName: results[0].lastName,
+      });
 
    } catch (error) {
       console.error(error);

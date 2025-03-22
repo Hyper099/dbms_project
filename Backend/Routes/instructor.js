@@ -44,13 +44,16 @@ instructorRouter.post("/signup", async (req, res) => {
 instructorRouter.get("/details", instructorAuth, async (req, res) => {
    try {
       const db = await connectDatabase();
-      const [results] = await db.execute("SELECT firstName FROM INSTRUCTOR WHERE id = ?", [req.instructor.id]);
+      const [results] = await db.execute("SELECT firstName,lastName FROM INSTRUCTOR WHERE id = ?", [req.instructor.id]);
 
       if (results.length === 0) {
          return res.status(404).json({ error: "Instructor not found" });
       }
 
-      res.json({ firstName: results[0].firstName });
+      res.json({
+         firstName: results[0].firstName,
+         lastName: results[0].lastName,
+      });
    } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Server error" });
