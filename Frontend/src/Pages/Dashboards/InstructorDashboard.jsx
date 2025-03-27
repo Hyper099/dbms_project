@@ -410,11 +410,18 @@ export default function InstructorDashboard() {
                                              View
                                           </button>
                                        </div>
-                                       {/* Students Modal */}
-                                       {/* Students Modal */}
                                        {showStudentsModal && (
-                                          <div className="fixed inset-0 backdrop-blur-sm bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 p-4">
-                                             <div className="bg-white rounded-xl shadow-2xl p-0 m-4 max-w-4xl w-full animate-fadeIn">
+                                          <div
+                                             className="fixed inset-0 flex items-center justify-center z-50 p-4"
+                                             style={{ backdropFilter: "blur(8px)" }}
+                                             onClick={(e) => {
+                                                if (e.target === e.currentTarget) setShowStudentsModal(false);
+                                             }}
+                                          >
+                                             <div className="fixed inset-0 opacity-30"></div>
+
+                                             {/* Modal Content */}
+                                             <div className="bg-white rounded-xl shadow-2xl p-0 m-4 max-w-4xl w-full animate-fadeIn z-10 overflow-hidden">
                                                 {/* Modal Header */}
                                                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-xl flex justify-between items-center">
                                                    <h3 className="text-xl font-semibold text-gray-800">Enrolled Students</h3>
@@ -452,7 +459,8 @@ export default function InstructorDashboard() {
                                                                      <td className="px-6 py-4 whitespace-nowrap">
                                                                         <div className="flex items-center">
                                                                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center">
-                                                                              {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                                                                              {student.firstName.charAt(0)}
+                                                                              {student.lastName.charAt(0)}
                                                                            </div>
                                                                            <div className="ml-4">
                                                                               <div className="text-sm font-medium text-gray-900">{student.firstName} {student.lastName}</div>
@@ -548,7 +556,7 @@ export default function InstructorDashboard() {
                </div>
             </div>
          </div>
-      </div>
+      </div >
    );
 }
 
