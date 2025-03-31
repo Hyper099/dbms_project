@@ -21,7 +21,7 @@ async function connectDatabase() {
    }
    return db;
 }
-
+connectDatabase();
 module.exports = connectDatabase;
 
 // host: process.env.MYSQL_ADDON_HOST,
