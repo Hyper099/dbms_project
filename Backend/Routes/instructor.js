@@ -44,7 +44,10 @@ instructorRouter.post("/signup", async (req, res) => {
 instructorRouter.get("/details", instructorAuth, async (req, res) => {
    try {
       const db = await connectDatabase();
-      const [results] = await db.execute("SELECT firstName,lastName FROM INSTRUCTOR WHERE id = ?", [req.instructor.id]);
+      const [results] = await db.execute(
+         "SELECT firstName, lastName FROM INSTRUCTOR WHERE id = ?",
+         [req.instructor.id]
+      );
 
       if (results.length === 0) {
          return res.status(404).json({ error: "Instructor not found" });
@@ -60,11 +63,28 @@ instructorRouter.get("/details", instructorAuth, async (req, res) => {
    }
 });
 
-// Get Instructor Courses
+// Get Instructor Courses (JOIN with COURSE_DETAILS)
 instructorRouter.get("/course", instructorAuth, async (req, res) => {
    try {
       const db = await connectDatabase();
-      const [courses] = await db.execute("SELECT * FROM COURSES WHERE instructor_id = ?", [req.instructor.id]);
+      const instructorId = req.instructor.id;
+
+      const [courses] = await db.execute(
+         `SELECT
+            CD.id AS course_details_id,
+            CD.title,
+            CD.description,
+            CD.price,
+            CD.category_id,
+            CD.access_period,
+            CD.duration,
+            CD.created_at,
+            C.id AS course_id
+         FROM COURSES C
+         JOIN COURSE_DETAILS CD ON CD.course_id = C.id
+         WHERE C.instructor_id = ?`,
+         [instructorId]
+      );
 
       if (courses.length === 0) {
          return res.status(404).json({ error: "No courses found for the instructor" });

@@ -7,91 +7,97 @@ const cartRouter = Router();
 // Middleware to check if user is authenticated as a student.
 cartRouter.use(studentAuth);
 
-//! ADD COURSE TO CART.
+//! ADD COURSE TO CART
 cartRouter.post("/", async (req, res) => {
-   const studentId = req.student.id;
-   const { courseId } = req.body;
-
-   const db = await connectDatabase();
-
    try {
+      const studentId = req.student.id;
+      const { courseId } = req.body;
+
+      if (!courseId) {
+         return res.status(400).json({ error: "Course ID is required" });
+      }
+
+      const db = await connectDatabase();
+
       // Check if the student is already enrolled in the course
-      const [enrollmentResult] = await db.execute(
-         "SELECT * FROM ENROLLMENT WHERE student_id = ? AND course_id = ?",
+      const [enrolled] = await db.execute(
+         "SELECT 1 FROM ENROLLMENT WHERE student_id = ? AND course_id = ?",
          [studentId, courseId]
       );
-
-      if (enrollmentResult.length > 0) {
-         return res.status(400).json({ message: "Course already enrolled" });
+      if (enrolled.length > 0) {
+         return res.status(409).json({ error: "Already enrolled in this course" });
       }
 
       // Check if the course is already in the cart
-      const [cartResult] = await db.execute(
-         "SELECT * FROM CART WHERE student_id = ? AND course_id = ?",
+      const [cart] = await db.execute(
+         "SELECT 1 FROM CART WHERE student_id = ? AND course_id = ?",
          [studentId, courseId]
       );
-
-      if (cartResult.length > 0) {
-         return res.status(400).json({ message: "Course already in cart" });
+      if (cart.length > 0) {
+         return res.status(409).json({ error: "Course already in cart" });
       }
 
       // Add the course to the cart
       await db.execute(
-         "INSERT INTO CART(student_id, course_id) VALUES (?, ?)",
+         "INSERT INTO CART (student_id, course_id) VALUES (?, ?)",
          [studentId, courseId]
       );
 
-      res.json({ message: "Course added to cart successfully" });
+      res.status(201).json({ message: "Course added to cart" });
 
    } catch (error) {
-      console.error("Error while adding course to cart:", error);
-      res.status(500).json({ error: "Failed to add course to cart." });
+      console.error("Error adding course to cart:", error);
+      res.status(500).json({ error: "Internal server error" });
    }
 });
 
-//! GET COURSES FROM CART.
+//! GET COURSES FROM CART
 cartRouter.get("/", async (req, res) => {
-   const studentId = req.student.id;
-   const db = await connectDatabase();
    try {
-      const [results] = await db.execute(
+      const studentId = req.student.id;
+      const db = await connectDatabase();
+
+      const [courses] = await db.execute(
          `SELECT c.id, c.title, c.price 
-          FROM CART as ca
-          JOIN COURSES as c
-          ON ca.course_id = c.id
+          FROM CART ca
+          JOIN COURSES c ON ca.course_id = c.id
           WHERE ca.student_id = ?`,
          [studentId]
       );
 
-      res.json(results); //? sending id,price,title.
+      res.status(200).json(courses);
+
    } catch (error) {
-      console.error("Error while fetching courses from cart:", error);
-      res.status(500).json({ error: "Failed to fetch courses from cart." });
+      console.error("Error fetching cart courses:", error);
+      res.status(500).json({ error: "Internal server error" });
    }
 });
 
-//! DELETE COURSE FROM CART.
+//! DELETE COURSE FROM CART
 cartRouter.delete("/", async (req, res) => {
-   const studentId = req.student.id;
-   const { courseId } = req.body;
-
-   const db = await connectDatabase();
-
    try {
+      const studentId = req.student.id;
+      const { courseId } = req.body;
+
+      if (!courseId) {
+         return res.status(400).json({ error: "Course ID is required" });
+      }
+
+      const db = await connectDatabase();
       const [result] = await db.execute(
          "DELETE FROM CART WHERE student_id = ? AND course_id = ?",
          [studentId, courseId]
       );
 
       if (result.affectedRows === 0) {
-         return res.status(404).json({ message: "Course not found in cart" });
+         return res.status(404).json({ error: "Course not found in cart" });
       }
 
-      res.json({ message: "Course deleted from cart successfully" });
+      res.status(200).json({ message: "Course removed from cart" });
 
    } catch (error) {
-      console.error("Error while deleting course from cart:", error);
-      res.status(500).json({ error: "Failed to delete course from cart." });
+      console.error("Error removing course from cart:", error);
+      res.status(500).json({ error: "Internal server error" });
    }
 });
 
