@@ -88,6 +88,7 @@ studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
             CD.created_at,
             CD.duration,
             C.instructor_id,
+            CD.total_lessons,
             E.completed_lessons
          FROM ENROLLMENT E
          JOIN COURSES C ON E.course_id = C.id
@@ -129,7 +130,7 @@ studentRouter.get("/stats", studentAuth, async (req, res) => {
          `SELECT COUNT(*) AS count
           FROM ENROLLMENT E
           LEFT JOIN CERTIFICATES C ON E.id = C.enrollment_id
-          WHERE E.student_id = ? AND C.enrollment_id IS NULL AND E.completed_lessons > 0`,
+          WHERE E.student_id = ? AND C.enrollment_id IS NULL AND E.completed_lessons >= 0`,
          [studentId]
       );
 
