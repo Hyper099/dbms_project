@@ -1,10 +1,11 @@
 const { Router } = require("express");
 const connectDatabase = require("../Database/database");
 const { studentAuth } = require("../Middleware/authMiddleware");
+const { isCourseExist, isCourseInCart, isStudentEnrolled } = require("../Services/cartService");
 
 const cartRouter = Router();
 
-// Middleware to check if user is authenticated as a student.
+// Middleware to check student authentication
 cartRouter.use(studentAuth);
 
 //! ADD COURSE TO CART
@@ -13,31 +14,22 @@ cartRouter.post("/", async (req, res) => {
       const studentId = req.student.id;
       const { courseId } = req.body;
 
-      if (!courseId) {
-         return res.status(400).json({ error: "Course ID is required" });
-      }
+      if (!courseId) return res.status(400).json({ error: "Course ID is required" });
 
       const db = await connectDatabase();
 
-      // Check if the student is already enrolled in the course
-      const [enrolled] = await db.execute(
-         "SELECT 1 FROM ENROLLMENT WHERE student_id = ? AND course_id = ?",
-         [studentId, courseId]
-      );
-      if (enrolled.length > 0) {
+      if (!(await isCourseExist(db,courseId))) {
+         return res.status(404).json({ error: "Course not found" });
+      }
+
+      if (await isStudentEnrolled(db,studentId, courseId)) {
          return res.status(409).json({ error: "Already enrolled in this course" });
       }
 
-      // Check if the course is already in the cart
-      const [cart] = await db.execute(
-         "SELECT 1 FROM CART WHERE student_id = ? AND course_id = ?",
-         [studentId, courseId]
-      );
-      if (cart.length > 0) {
+      if (await isCourseInCart(db,studentId, courseId)) {
          return res.status(409).json({ error: "Course already in cart" });
       }
 
-      // Add the course to the cart
       await db.execute(
          "INSERT INTO CART (student_id, course_id) VALUES (?, ?)",
          [studentId, courseId]
@@ -52,20 +44,34 @@ cartRouter.post("/", async (req, res) => {
 });
 
 //! GET COURSES FROM CART
+//! GET COURSES FROM CART — Enhanced
 cartRouter.get("/", async (req, res) => {
    try {
       const studentId = req.student.id;
       const db = await connectDatabase();
 
-      const [courses] = await db.execute(
-         `SELECT c.id, c.title, c.price 
-          FROM CART ca
-          JOIN COURSES c ON ca.course_id = c.id
-          WHERE ca.student_id = ?`,
+      const [cartItems] = await db.execute(
+         `
+      SELECT 
+        c.id AS courseId,
+        cd.title,
+        cd.price,
+        cat.name AS category
+      FROM CART ca
+      JOIN COURSES c ON ca.course_id = c.id
+      JOIN COURSE_DETAILS cd ON c.id = cd.course_id
+      LEFT JOIN CATEGORIES cat ON cd.category_id = cat.id
+      WHERE ca.student_id = ?
+      `,
          [studentId]
       );
 
-      res.status(200).json(courses);
+      const totalPrice = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
+
+      res.status(200).json({
+         cartItems,
+         totalPrice
+      });
 
    } catch (error) {
       console.error("Error fetching cart courses:", error);
@@ -73,17 +79,17 @@ cartRouter.get("/", async (req, res) => {
    }
 });
 
-//! DELETE COURSE FROM CART
+
+//! REMOVE COURSE FROM CART
 cartRouter.delete("/", async (req, res) => {
    try {
       const studentId = req.student.id;
       const { courseId } = req.body;
 
-      if (!courseId) {
-         return res.status(400).json({ error: "Course ID is required" });
-      }
+      if (!courseId) return res.status(400).json({ error: "Course ID is required" });
 
       const db = await connectDatabase();
+
       const [result] = await db.execute(
          "DELETE FROM CART WHERE student_id = ? AND course_id = ?",
          [studentId, courseId]

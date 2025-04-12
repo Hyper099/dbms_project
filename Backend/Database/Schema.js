@@ -18,6 +18,7 @@ const CourseSchema = z.object({
    duration: z.coerce.number().positive("Duration must be a positive number"),
    price: z.coerce.number().positive("Price must be a positive number"),
    category: z.string().min(1, "Category must be at least 1 character"),
+   accessPeriod: z.coerce.number().positive("Access Period must be positive.")
 });
 
 

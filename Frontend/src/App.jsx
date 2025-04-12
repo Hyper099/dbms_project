@@ -10,6 +10,7 @@ import StudentDashboard from './Pages/Dashboards/StudentDashboard';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/Login';
 import PageNotFound from './Pages/PageNotFound';
+import ProfilePage from './Pages/ProfilePage';
 import InstructorRegistration from './Pages/SignUp/InstructorRegistration';
 import StudentRegistration from './Pages/SignUp/StudentRegistration';
 
@@ -32,6 +33,7 @@ function App() {
         <Route path='/about' element={<AboutUs />} />
         <Route path="*" element={<PageNotFound />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </>
   );
