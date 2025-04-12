@@ -1,4 +1,3 @@
-// src/context/CartContext.js
 import { createContext, useContext, useEffect, useState } from "react";
 import API from "../utils/api";
 

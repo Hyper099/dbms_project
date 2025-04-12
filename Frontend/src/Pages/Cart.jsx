@@ -112,7 +112,9 @@ const Cart = () => {
                   // Show success message
                   alert("Payment Successful! You are now enrolled in the courses.");
                   console.log(verificationResponse.data);
-
+                  removeCourseFromCart(cartItems.map(item => item.courseId));
+                  fetchCartCount();
+                  
                   // Redirect to dashboard after successful payment
                   navigate("/dashboard/student");
                } catch (error) {

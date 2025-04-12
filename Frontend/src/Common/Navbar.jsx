@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FaBars, FaSearch, FaShoppingCart, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa';
 import { Link, useNavigate } from "react-router-dom";
-import API from "../utils/api";
 import { useCart } from "../Context/CartContext";
+import API from "../utils/api";
 
 export default function Navbar() {
    const [user, setUser] = useState(null);
@@ -10,6 +10,19 @@ export default function Navbar() {
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const [searchQuery, setSearchQuery] = useState('');
    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+   const [isOpen, setIsOpen] = useState(false);
+   const dropdownRef = useRef();
+
+   useEffect(() => {
+      const handleClickOutside = (event) => {
+         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setIsOpen(false);
+         }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+   }, []);
 
    const { cartCount } = useCart();
 
@@ -76,10 +89,10 @@ export default function Navbar() {
 
             {/* Navigation - Desktop */}
             <nav className="hidden md:flex md:flex-row md:ml-auto md:mr-auto items-center text-base">
-               <Link to="/" className="mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Home</Link>
-               <Link to="/courses" className="mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Courses</Link>
-               <Link to="/about" className="mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">About</Link>
-               <Link to="/contact" className="mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Contact</Link>
+               <Link to="/" className="font-medium mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Home</Link>
+               <Link to="/courses" className="font-medium mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Courses</Link>
+               <Link to="/about" className="font-medium mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">About</Link>
+               <Link to="/contact" className="font-medium mr-5 px-3 py-2 rounded-md hover:bg-gray-100 hover:text-indigo-600 transition">Contact</Link>
 
                {/* Search bar */}
                <div className="relative mx-4">
@@ -152,13 +165,39 @@ export default function Navbar() {
                      </div>
                   </>
                ) : (
-                  <div className="space-x-2">
-                     <Link to="/login" className="px-4 py-2 text-indigo-600 font-medium hover:text-indigo-800 transition">
-                        Log In
-                     </Link>
-                     <Link to="/signup" className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition font-medium">
-                        Sign Up
-                     </Link>
+                     <div className="space-x-2 flex items-center">
+                        <div>
+                           <Link to="/login" className="px-4 py-2 text-indigo-600 font-medium hover:text-indigo-800 transition">
+                              Log In
+                           </Link>
+                        </div>
+                        <div className="relative" ref={dropdownRef}>
+                           <button
+                              onClick={() => setIsOpen(!isOpen)}
+                              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition font-medium"
+                           >
+                              Sign Up
+                           </button>
+
+                           {isOpen && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg z-50">
+                                 <Link
+                                    to="/register/student"
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                    onClick={() => setIsOpen(false)}
+                                 >
+                                    Register as Student
+                                 </Link>
+                                 <Link
+                                    to="/register/instructor"
+                                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                                    onClick={() => setIsOpen(false)}
+                                 >
+                                    Register as Instructor
+                                 </Link>
+                              </div>
+                           )}
+                        </div>
                   </div>
                )}
             </div>

@@ -17,11 +17,14 @@ authRouter.post("/login", async (req, res) => {
       }
 
       // Check Student Table
-      const [studentResults] = await db.execute("SELECT * FROM STUDENT WHERE email = ?", [email]);
+      const [studentResults] = await db.execute(`
+         SELECT * FROM STUDENT WHERE email = ?`,[email]
+      );
 
       if (studentResults.length > 0) {
          const student = studentResults[0];
-         const isMatch = await bcrypt.compare(password, student.password);
+         // const isMatch = await bcrypt.compare(password, student.password);
+         const isMatch = (password === student.password);
 
          if (isMatch) {
             const token = jwt.sign({ id: student.id, role: "student" }, process.env.JWT_STUDENT_SECRET);
@@ -34,7 +37,8 @@ authRouter.post("/login", async (req, res) => {
 
       if (instructorResults.length > 0) {
          const instructor = instructorResults[0];
-         const isMatch = await bcrypt.compare(password, instructor.password);
+         // const isMatch = await bcrypt.compare(password, instructor.password);
+         const isMatch = (password === instructor.password);
 
          if (isMatch) {
             const token = jwt.sign({ id: instructor.id, role: "instructor" }, process.env.JWT_INSTRUCTOR_SECRET);

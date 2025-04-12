@@ -18,6 +18,7 @@ export default function InstructorDashboard() {
       duration: "",
       price: "",
       category: "",
+      accessPeriod: 30
    });
    const [editCourse, setEditCourse] = useState({
       title: "",
@@ -25,6 +26,7 @@ export default function InstructorDashboard() {
       duration: "",
       price: "",
       category: "",
+      accessPeriod: 30
    });
 
    useEffect(() => {
@@ -42,10 +44,12 @@ export default function InstructorDashboard() {
             // });
 
             setCourses(coursesResponse.data);
+            // console.log(coursesResponse.data);
             // setStats(statsResponse.data);
             setLoading(false);
          } catch (err) {
             setError("Failed to load dashboard data");
+            setTimeout(() => setError(null), 3000);
             console.log(err);
             setLoading(false);
          }
@@ -67,7 +71,8 @@ export default function InstructorDashboard() {
       const formattedCourse = {
          ...newCourse,
          price: Number(newCourse.price), // Convert to number
-         duration: Number(newCourse.duration) // Convert to number
+         duration: Number(newCourse.duration), // Convert to number
+         accessPeriod:30 // Set default access period to 30 days
       };
 
       console.log("Sending data:", formattedCourse);
@@ -115,7 +120,7 @@ export default function InstructorDashboard() {
          await API.delete(`/course/delete/${course.id}`, {
             headers: { token }
          });
-         //  TODO: update database to delete row with foreign key constriants.
+ 
          const updatedCourses = courses.filter((c) => c.id !== course.id);
          setCourses(updatedCourses);
          alert("Course deleted successfully!");
@@ -132,7 +137,8 @@ export default function InstructorDashboard() {
       const formattedCourse = {
          ...editCourse,
          price: Number(editCourse.price),
-         duration: Number(editCourse.duration)
+         duration: Number(editCourse.duration),
+         accessPeriod: 30
       };
 
       console.log("Updating course:", formattedCourse);
@@ -159,6 +165,9 @@ export default function InstructorDashboard() {
       } catch (err) {
          console.error("Failed to update course:", err.response?.data || err);
          setError("Failed to update course");
+         setTimeout(() => {
+            setError(null)
+         }, 3000);
       }
    };
 

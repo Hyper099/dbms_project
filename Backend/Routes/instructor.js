@@ -1,5 +1,4 @@
 const { Router } = require("express");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const connectDatabase = require("../Database/database");
 const { SignUpSchema, LoginSchema } = require("../Database/schema");
@@ -16,7 +15,7 @@ instructorRouter.post("/signup", async (req, res) => {
       }
 
       const { email, password, firstName, lastName } = result.data;
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // const hashedPassword = await bcrypt.hash(password, 10);
       const db = await connectDatabase();
 
       const [existingUsers] = await db.execute(
@@ -30,7 +29,7 @@ instructorRouter.post("/signup", async (req, res) => {
 
       await db.execute(
          "INSERT INTO INSTRUCTOR (email, password, firstName, lastName) VALUES (?, ?, ?, ?)",
-         [email, hashedPassword, firstName, lastName]
+         [email, password, firstName, lastName]
       );
 
       res.status(201).json({ message: "Instructor Registered Successfully." });
@@ -79,7 +78,7 @@ instructorRouter.get("/course", instructorAuth, async (req, res) => {
             CD.access_period,
             CD.duration,
             CD.created_at,
-            C.id AS course_id
+            C.id 
          FROM COURSES C
          JOIN COURSE_DETAILS CD ON CD.course_id = C.id
          WHERE C.instructor_id = ?`,
