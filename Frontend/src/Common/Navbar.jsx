@@ -2,32 +2,16 @@ import React, { useEffect, useState } from "react";
 import { FaBars, FaSearch, FaShoppingCart, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa';
 import { Link, useNavigate } from "react-router-dom";
 import API from "../utils/api";
+import { useCart } from "../Context/CartContext";
 
 export default function Navbar() {
    const [user, setUser] = useState(null);
    const navigate = useNavigate();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const [searchQuery, setSearchQuery] = useState('');
-   const [cartCount, setCartCount] = useState(0);
    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-   useEffect(() => {
-      const fetchCartCount = async () => {
-         const token = localStorage.getItem("token");
-         if (token) {
-            try {
-               const response = await API.get('/cart/count', {
-                  headers: { token }
-               });
-               setCartCount(response.data.count);
-            } catch (error) {
-               console.error("Error fetching cart count:", error);
-            }
-         }
-      };
-
-      fetchCartCount();
-   }, []);
+   const { cartCount } = useCart();
 
    useEffect(() => {
       const handleClickOutside = (event) => {

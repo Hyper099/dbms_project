@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { FaArrowLeft, FaLock, FaShoppingCart, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../Context/CartContext';
 import API from '../utils/api';
 
 const Cart = () => {
@@ -11,18 +11,14 @@ const Cart = () => {
    const [totalPrice, setTotalPrice] = useState(0);
    const navigate = useNavigate();
 
-   // Fetch cart items when component mounts
+
+   const { fetchCartCount } = useCart();
+
    useEffect(() => {
       fetchCartItems();
    }, []);
 
-   // Calculate total price whenever cart items change
-   useEffect(() => {
-      const total = cartItems.reduce((sum, item) => sum + Number(item.price), 0);
-      setTotalPrice(total);
-   }, [cartItems]);
-
-   // Function to fetch cart items
+   
    const fetchCartItems = async () => {
       try {
          const token = localStorage.getItem('token');
@@ -38,26 +34,29 @@ const Cart = () => {
       } catch (err) {
          setError(err.response?.data?.error || 'Failed to load cart items');
          console.error('Error fetching cart:', err);
-         // Hide error after 3 seconds
-         setTimeout(() => setError(null), 3000);
+         setTimeout(() => setError(null), 5000);
       } finally {
          setLoading(false);
       }
    };
 
-   // Function to remove course from cart
    const removeCourseFromCart = async (courseId) => {
+      const token = localStorage.getItem('token');
+      console.log(courseId);
       try {
-         await axios.delete('/api/cart', {
-            data: { courseId },
-            withCredentials: true
+         await API.delete('/cart', {
+            headers: { token },
+            data: { courseId }
          });
 
-         setCartItems(prevItems => prevItems.filter(item => item.courseId !== courseId));
+         setCartItems(prevItems => prevItems.filter(item => item.courseId !== courseId)); 
+         alert("Removed Course from the Cart");
+         fetchCartCount();
+         fetchCartItems();
       } catch (err) {
          setError(err.response?.data?.error || 'Failed to remove course from cart');
          console.error('Error removing course from cart:', err);
-         setTimeout(() => setError(null), 3000);
+         setTimeout(() => setError(null), 5000);
       }
    };
 
@@ -84,7 +83,7 @@ const Cart = () => {
          // Step 1: Create Order
          const { data } = await API.post(
             "/payment/create-order",
-            {},  // Empty body since backend fetches cart items based on student ID
+            {},
             { headers: { token } }
          );
 
@@ -146,13 +145,13 @@ const Cart = () => {
 
    // Render loading state
    if (loading) {
-  return (
-    <div className="flex flex-col justify-center items-center h-64 space-y-4">
-      <div className="text-xl font-semibold">Loading your cart...</div>
-      <div className="w-12 h-12 border-4 border-blue-400 border-dashed rounded-full animate-spin"></div>
-    </div>
-  );
-}
+      return (
+         <div className="flex flex-col justify-center items-center h-64 space-y-4">
+            <div className="text-xl font-semibold">Loading your cart...</div>
+            <div className="w-12 h-12 border-4 border-blue-400 border-dashed rounded-full animate-spin"></div>
+         </div>
+      );
+   }
 
 
    return (
@@ -186,101 +185,101 @@ const Cart = () => {
                   <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                      <h2 className="text-xl font-semibold p-4 border-b">Cart Items</h2>
                      <div className="divide-y divide-gray-200">
-                           {cartItems.map((item) => (
-                              <div key={item.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                                 <div className="flex items-center">
-                                    {item.imageUrl && (
-                                       <img
-                                          src={item.imageUrl || "/placeholder-course.jpg"}
-                                          alt={item.title}
-                                          className="w-16 h-16 object-cover rounded mr-4 hidden sm:block"
-                                       />
-                                    )}
-                                    <div>
-                                       <div className="font-medium text-gray-900 text-lg">{item.title}</div>
-                                       {item.instructor && <div className="text-gray-500 text-sm">By {item.instructor}</div>}
-                                    </div>
-                                 </div>
-                                 <div className="flex items-center">
-                                    <div className="text-gray-900 mr-4 font-semibold text-lg">
-                                       ${item.price}
-                                    </div>
-                                    <button
-                                       onClick={() => removeCourseFromCart(item.id)}
-                                       className="text-red-600 hover:bg-red-100 p-2 rounded-full transition-colors"
-                                       aria-label="Remove item"
-                                    >
-                                       <FaTrash />
-                                    </button>
+                        {cartItems.map((item) => (
+                           <div key={item.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center">
+                                 {item.imageUrl && (
+                                    <img
+                                       src={item.imageUrl || "/placeholder-course.jpg"}
+                                       alt={item.title}
+                                       className="w-16 h-16 object-cover rounded mr-4 hidden sm:block"
+                                    />
+                                 )}
+                                 <div>
+                                    <div className="font-medium text-gray-900 text-lg">{item.title}</div>
+                                    {item.instructor && <div className="text-gray-500 text-sm">By {item.instructor}</div>}
                                  </div>
                               </div>
-                           ))}
+                              <div className="flex items-center">
+                                 <div className="text-gray-900 mr-4 font-semibold text-lg">
+                                    Rs.{item.price}
+                                 </div>
+                                 <button
+                                    onClick={() => removeCourseFromCart(item.id)}
+                                    className="text-red-600 hover:bg-red-100 p-2 rounded-full transition-colors"
+                                    aria-label="Remove item"
+                                 >
+                                    <FaTrash />
+                                 </button>
+                              </div>
+                           </div>
+                        ))}
                      </div>
                   </div>
                </div>
 
                {/* Billing Summary - Right Side (1/3 width on large screens) */}
-                  <div className="bg-white rounded-lg shadow-md overflow-hidden sticky top-4">
-                     <h2 className="text-xl font-semibold p-4 border-b bg-gray-50">Order Summary</h2>
-                     <div className="p-4">
-                        <div className="divide-y divide-gray-200">
-                           {cartItems.map((item) => (
-                              <div key={item.id} className="py-3 flex justify-between">
-                                 <div className="text-gray-700">{item.title}</div>
-                                 <div className="font-medium">${item.price}</div>
-                              </div>
-                           ))}
+               <div className="bg-white rounded-lg shadow-md overflow-hidden sticky top-4">
+                  <h2 className="text-xl font-semibold p-4 border-b bg-gray-50">Order Summary</h2>
+                  <div className="p-4">
+                     <div className="divide-y divide-gray-200">
+                        {cartItems.map((item) => (
+                           <div key={item.id} className="py-3 flex justify-between">
+                              <div className="text-gray-700">{item.title}</div>
+                              <div className="font-medium">Rs.{item.price}</div>
+                           </div>
+                        ))}
 
-                           {/* Add coupon code field */}
-                           <div className="py-4">
-                              <div className="flex space-x-2">
-                                 <input
-                                    type="text"
-                                    placeholder="Coupon code"
-                                    className="flex-1 border rounded p-2 text-sm"
-                                 />
-                                 <button className="bg-gray-200 text-gray-800 px-3 py-2 rounded text-sm hover:bg-gray-300">
-                                    Apply
-                                 </button>
-                              </div>
-                           </div>
-
-                           <div className="py-3 flex justify-between">
-                              <div className="text-gray-700">Subtotal</div>
-                              <div className="font-medium">${totalPrice}</div>
-                           </div>
-                           <div className="py-3 flex justify-between">
-                              <div className="text-gray-700">Discount</div>
-                              <div className="font-medium text-green-600">$0.00</div>
-                           </div>
-                           <div className="py-3 flex justify-between font-bold text-lg">
-                              <div>Total</div>
-                              <div>${totalPrice}</div>
+                        {/* Add coupon code field */}
+                        <div className="py-4">
+                           <div className="flex space-x-2">
+                              <input
+                                 type="text"
+                                 placeholder="Coupon code"
+                                 className="flex-1 border rounded p-2 text-sm"
+                              />
+                              <button className="bg-gray-200 text-gray-800 px-3 py-2 rounded text-sm hover:bg-gray-300">
+                                 Apply
+                              </button>
                            </div>
                         </div>
 
-                        {/* Enhanced payment button */}
-                        <button
-                           onClick={handlePayment}
-                           className="w-full bg-green-600 text-white font-medium py-3 rounded-lg hover:bg-green-700 mt-6 flex items-center justify-center transition-colors"
-                        >
-                           <FaLock className="mr-2" /> Pay Securely Now
-                        </button>
-
-                        <button
-                           onClick={continueShopping}
-                           className="w-full bg-gray-200 text-gray-800 font-medium py-2 rounded-lg hover:bg-gray-300 mt-4 transition-colors"
-                        >
-                           Continue Shopping
-                        </button>
-
-                        {/* Add payment methods info */}
-                        <div className="mt-4 text-center">
-                           <p className="text-xs text-gray-500">Secure payment powered by Razorpay</p>
-                           
+                        <div className="py-3 flex justify-between">
+                           <div className="text-gray-700">Subtotal</div>
+                           <div className="font-medium">Rs.{totalPrice}</div>
+                        </div>
+                        <div className="py-3 flex justify-between">
+                           <div className="text-gray-700">Discount</div>
+                           <div className="font-medium text-green-600">Rs.0.00</div>
+                        </div>
+                        <div className="py-3 flex justify-between font-bold text-lg">
+                           <div>Total</div>
+                           <div>Rs.{totalPrice}</div>
                         </div>
                      </div>
+
+                     {/* Enhanced payment button */}
+                     <button
+                        onClick={handlePayment}
+                        className="w-full bg-green-600 text-white font-medium py-3 rounded-lg hover:bg-green-700 mt-6 flex items-center justify-center transition-colors"
+                     >
+                        <FaLock className="mr-2" /> Pay Securely Now
+                     </button>
+
+                     <button
+                        onClick={continueShopping}
+                        className="w-full bg-gray-200 text-gray-800 font-medium py-2 rounded-lg hover:bg-gray-300 mt-4 transition-colors"
+                     >
+                        Continue Shopping
+                     </button>
+
+                     {/* Add payment methods info */}
+                     <div className="mt-4 text-center">
+                        <p className="text-xs text-gray-500">Secure payment powered by Razorpay</p>
+
+                     </div>
                   </div>
+               </div>
             </div>
          )}
       </div>

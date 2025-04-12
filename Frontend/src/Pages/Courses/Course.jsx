@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useCart } from "../../Context/CartContext";
 import API from "../../utils/api";
 
 export default function Courses() {
@@ -11,11 +12,14 @@ export default function Courses() {
    const [filterPrice, setFilterPrice] = useState(null);
    const [cart, setCart] = useState([]);
 
+   const { fetchCartCount } = useCart();
+
    useEffect(() => {
       const fetchCourses = async () => {
          try {
             const response = await API.get("/course");
             setCourses(response.data);
+            // console.log(response.data);
          } catch (error) {
             console.error("Error fetching courses:", error);
             setError("Failed to load courses.");
@@ -24,6 +28,44 @@ export default function Courses() {
          }
       };
       fetchCourses();
+   }, []);
+
+   useEffect(() => {
+      const fetchCartItems = async () => {
+         const token = localStorage.getItem("token");
+         if (token) {
+            try {
+               const response = await API.get("/cart", {
+                  headers: { token }
+               });
+               setCart(response.data.cartItems);
+               // console.log(response.data.cartItems);
+            } catch (error) {
+               console.error("Error fetching cart items:", error);
+            }
+         }
+      };
+
+      fetchCartItems();
+   }, []);
+
+   useEffect(() => {
+      const fetchEnrolledCourses = async () => {
+         const token = localStorage.getItem("token");
+         if (token) {
+            try {
+               const response = await API.get("/student/course/enrolled", {
+                  headers: { token }
+               });
+               console.log(response.data);
+               setEnrolledCourses(response.data.map(course => course.id));
+            } catch (error) {
+               console.log("Error fetching enrolled courses:", error.response.data.message);
+            }
+         }
+      };
+
+      fetchEnrolledCourses();
    }, []);
 
    const addToCart = async (course) => {
@@ -35,6 +77,7 @@ export default function Courses() {
             });
             setCart([...cart, course]);
             alert("Course added to cart!");
+            fetchCartCount();
          } catch (error) {
             console.error("Error adding course to cart:", error);
             alert("Failed to add course to cart.");
@@ -44,51 +87,11 @@ export default function Courses() {
       }
    };
 
-   // Add this after the other useEffect hooks
-   useEffect(() => {
-      const fetchCartItems = async () => {
-         const token = localStorage.getItem("token");
-         if (token) {
-            try {
-               const response = await API.get("/cart", {
-                  headers: { token }
-               });
-               setCart(response.data);
-            } catch (error) {
-               console.error("Error fetching cart items:", error);
-               // Don't set error state here to avoid disrupting the main courses display
-            }
-         }
-      };
-
-      fetchCartItems();
-   }, []);
-
    const isInCart = (courseId) => {
       return cart.some(item => item.id === courseId);
    };
 
-   //! To fetch Enrolled Courses.
-   useEffect(() => {
-      const fetchEnrolledCourses = async () => {
-         const token = localStorage.getItem("token");
-         if (token) {
-            try {
-               const response = await API.get("/student/course/enrolled", {
-                  headers: { token }
-               });
-               setEnrolledCourses(response.data.map(course => course.id));
-            } catch (error) {
-               console.error("Error fetching enrolled courses:", error);
-               // Don't set error state here to avoid disrupting the main courses display
-            }
-         }
-      };
-
-      fetchEnrolledCourses();
-   }, []);
-
-
+   
    // Filter courses based on search term and price filter
    const filteredCourses = courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

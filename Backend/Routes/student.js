@@ -7,7 +7,7 @@ const { studentAuth } = require("../Middleware/authMiddleware");
 
 const studentRouter = Router();
 
-// Signup Route
+//! Signup Route
 studentRouter.post("/signup", async (req, res) => {
    try {
       const db = await connectDatabase();
@@ -21,7 +21,6 @@ studentRouter.post("/signup", async (req, res) => {
       const { email, password, firstName, lastName } = result.data;
       const hashedPassword = await bcrypt.hash(password, 10); //1234567.
 
-      // Check if email exists
       const [existingUsers] = await db.execute(
          "SELECT email FROM STUDENT WHERE email = ? UNION SELECT email FROM INSTRUCTOR WHERE email = ?",
          [email, email]
@@ -46,7 +45,7 @@ studentRouter.post("/signup", async (req, res) => {
 });
 
 
-// Details of the Student.
+//! Details of the Student.
 studentRouter.get("/details", studentAuth, async (req, res) => {
    try {
       const db = await connectDatabase();
@@ -71,7 +70,7 @@ studentRouter.get("/details", studentAuth, async (req, res) => {
    }
 });
 
-// Get the Courses student is enrolled in.
+//! Get the Courses student is enrolled in.
 studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
    try {
       const db = await connectDatabase();
@@ -79,6 +78,7 @@ studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
 
       const [result] = await db.execute(
          `SELECT
+            C.id,
             CD.id AS course_details_id,
             CD.title,
             CD.description,
@@ -97,7 +97,7 @@ studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
       );
 
       if (result.length === 0) {
-         return res.status(404).json({ error: "No courses found" });
+         return res.status(404).json({ message : "No courses found" });
       }
 
       res.json(result);
@@ -109,7 +109,7 @@ studentRouter.get("/course/enrolled", studentAuth, async (req, res) => {
 });
 
 
-// Get stats of a student.
+//! Get stats of a student.
 studentRouter.get("/stats", studentAuth, async (req, res) => {
    try {
       const db = await connectDatabase();

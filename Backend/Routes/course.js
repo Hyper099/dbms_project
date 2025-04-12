@@ -132,7 +132,7 @@ courseRouter.get("/", async (req, res) => {
       const db = await connectDatabase();
       const [results] = await db.execute(`
          SELECT 
-            C.id AS course_id,
+            C.id,
             CD.title,
             CD.description,
             CD.price,

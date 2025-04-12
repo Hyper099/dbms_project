@@ -19,9 +19,9 @@ paymentRouter.post("/create-order", studentAuth, async (req, res) => {
 
       // Fetch cart with prices
       const [cartItems] = await db.execute(`
-         SELECT C.course_id, CO.price 
-         FROM CART C 
-         JOIN COURSES CO ON C.course_id = CO.id 
+         SELECT C.course_id, CD.price 
+         FROM CART C
+         JOIN COURSE_DETAILS CD ON C.course_id = CD.course_id 
          WHERE C.student_id = ?`,
          [studentId]
       );
@@ -86,31 +86,28 @@ paymentRouter.post("/verify-payment", studentAuth, async (req, res) => {
          [razorpay_payment_id, studentId, amount, "Success", razorpay_order_id]
       );
 
-      // Enroll each course
+      //! Enroll for each course
       const enrollments = cartItems.map(async ({ course_id }) => {
          await db.execute(
             "INSERT INTO TRANSACTION_COURSES (transaction_id, student_id, course_id) VALUES (?, ?, ?)",
             [razorpay_payment_id, studentId, course_id]
          );
 
-         const [courseData] = await db.execute(
-            "SELECT access_period FROM COURSES WHERE id = ?",
+         const [courseResult] = await db.execute(
+            "SELECT access_period FROM COURSE_DETAILS WHERE course_id = ?",
             [course_id]
          );
 
-         const accessPeriod = parseInt(courseData[0]?.access_period || 0);
-         const today = new Date();
-         const startDate = today.toISOString().split('T')[0];
-
-         const expiryDate = new Date(today);
+         // Calculate enrollment and expiry dates
+         const accessPeriod = courseResult[0]?.access_period || 0;
+         const enrollmentDate = new Date().toISOString().split("T")[0];
+         const expiryDate = new Date();
          expiryDate.setDate(expiryDate.getDate() + accessPeriod);
-         const expiryDateStr = expiryDate.toISOString().split('T')[0];
 
-         await db.execute(
-            `INSERT INTO ENROLLMENT 
-               (Student_id, Course_id, Enrollment_date, Start_date, Expiry_date, Status) 
-             VALUES (?, ?, ?, ?, ?, 'Active')`,
-            [studentId, course_id, startDate, startDate, expiryDateStr]
+         // Insert new enrollment record
+         const [result] = await db.execute(
+            "INSERT INTO ENROLLMENT (student_id, course_id, enrollment_date, start_date, expiry_date) VALUES (?, ?, ?, ?, ?)",
+            [studentId, course_id, enrollmentDate, enrollmentDate, expiryDate.toISOString().split("T")[0]]
          );
       });
 

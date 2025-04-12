@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, BrowserRouter as Router, Routes, useLocation } from 'react-router-dom';
 import Navbar from './Common/Navbar';
+import { CartProvider } from './Context/CartContext';
 import AboutUs from './Pages/AboutUs';
 import Cart from './Pages/Cart';
 import ContactUs from './Pages/ContactUs';
@@ -42,7 +43,9 @@ function App() {
 export default function AppWrapper() {
   return (
     <Router>
-      <App />
+      <CartProvider>
+        <App />
+      </CartProvider>
     </Router>
   );
 }

@@ -44,7 +44,6 @@ cartRouter.post("/", async (req, res) => {
 });
 
 //! GET COURSES FROM CART
-//! GET COURSES FROM CART — Enhanced
 cartRouter.get("/", async (req, res) => {
    try {
       const studentId = req.student.id;
@@ -53,7 +52,7 @@ cartRouter.get("/", async (req, res) => {
       const [cartItems] = await db.execute(
          `
       SELECT 
-        c.id AS courseId,
+        c.id,
         cd.title,
         cd.price,
         cat.name AS category
@@ -103,6 +102,25 @@ cartRouter.delete("/", async (req, res) => {
 
    } catch (error) {
       console.error("Error removing course from cart:", error);
+      res.status(500).json({ error: "Internal server error" });
+   }
+});
+
+//! GET THE COUNT OF THE ITEMS IN THE CART.
+cartRouter.get("/count", async (req, res) => {
+   try {
+      const studentId = req.student.id;
+      const db = await connectDatabase();
+
+      const [result] = await db.execute(
+         "SELECT COUNT(*) AS count FROM CART WHERE student_id = ?",
+         [studentId]
+      );
+
+      res.status(200).json({ count: result[0].count });
+
+   } catch (error) {
+      console.error("Error fetching cart count:", error);
       res.status(500).json({ error: "Internal server error" });
    }
 });
