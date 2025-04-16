@@ -8,7 +8,6 @@ const authRouter = require("./Routes/auth");
 const paymentRouter = require("./Routes/payment");
 const cartRouter = require("./Routes/cart");
 const assignmentRouter = require("./Routes/assignment");
-const assessmentRouter = require("./Routes/assessment");
 
 const app = express();
 

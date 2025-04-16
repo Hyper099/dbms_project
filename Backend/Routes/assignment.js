@@ -4,13 +4,29 @@ const connectDatabase = require('../Database/database');
 
 const assignmentRouter = Router();
 
-// STUDENT ROUTES
+//! STUDENT ROUTES
 assignmentRouter.post('/submit', studentAuth, async (req, res) => {
    const db = await connectDatabase();
    const studentId = req.student.id;
    const { assignmentId, answers } = req.body;
 
+
    try {
+      // Check if student is enrolled in the course of assignemnt.
+      const [enrollmentResult] = await db.execute(
+         `
+            SELECT * FROM ENROLLMENT
+            WHERE student_id = ? AND course_id IN(
+               SELECT course_id FROM ASSIGNMENTS WHERE id = ?
+            )
+         `
+         ,[studentId,assignmentId]
+      );
+      if (enrollmentResult.length == 0) {
+         return res.status(403).json({ error: 'You are not enrolled in this course.and hence not allowed to give this assignment.' });
+      }
+
+      // Check if assignemnt exists.
       const [assignmentResult] = await db.execute(
          'SELECT * FROM ASSIGNMENTS WHERE id = ?',
          [assignmentId]
@@ -19,6 +35,7 @@ assignmentRouter.post('/submit', studentAuth, async (req, res) => {
          return res.status(404).json({ error: 'Assignment not found.' });
       }
 
+      // 
       const [questions] = await db.execute(
          'SELECT id, correct_option_id FROM QUESTIONS WHERE assignment_id = ?',
          [assignmentId]
@@ -27,23 +44,39 @@ assignmentRouter.post('/submit', studentAuth, async (req, res) => {
          return res.status(404).json({ error: 'No questions found for this assignment.' });
       }
 
+
       let correctAnswers = 0;
       const studentAnswers = [];
 
       answers.forEach(({ questionId, selectedOptionId }) => {
          const question = questions.find(q => q.id === questionId);
-         const isCorrect = question && question.correct_option_id === selectedOptionId;
+         const isCorrect = question?.correct_option_id === selectedOptionId;
+
+         if (typeof questionId !== 'number' || typeof selectedOptionId !== 'number') {
+            throw new Error(`Invalid questionId or selectedOptionId: ${questionId}, ${selectedOptionId}`);
+         }
 
          if (isCorrect) correctAnswers++;
 
          studentAnswers.push({
             questionId,
             selectedOptionId,
-            isCorrect
+            isCorrect: Boolean(isCorrect)
          });
       });
 
-      const score = ((correctAnswers / questions.length) * 100).toFixed(2);
+
+
+      const score = parseFloat(((correctAnswers / questions.length) * 100).toFixed(2));
+
+      console.log('VALUES FOR ASSESSMENTS INSERT:', {
+         studentId,
+         assignmentId,
+         score,
+         totalQuestions: questions.length,
+         correctAnswers
+      });
+
 
       const [assessmentResult] = await db.execute(
          'INSERT INTO ASSESSMENTS (student_id, assignment_id, score, total_questions, correct_answers) VALUES (?, ?, ?, ?, ?)',
@@ -73,11 +106,15 @@ assignmentRouter.get('/performance', studentAuth, async (req, res) => {
    try {
       const [results] = await db.execute(
          `
-         SELECT a.id AS assessment_id, c.title AS course_title, 
-         asn.title AS assignment_title, a.score, a.submitted_at
+         SELECT
+            a.id AS assessment_id,
+            cd.title AS course_title,
+            asn.title AS assignment_title,
+            a.score,
+            a.submitted_at
          FROM ASSESSMENTS a
          JOIN ASSIGNMENTS asn ON a.assignment_id = asn.id
-         JOIN COURSES c ON asn.course_id = c.id
+         JOIN COURSE_DETAILS cd ON asn.course_id = cd.course_id
          WHERE a.student_id = ?
          `,
          [studentId]
@@ -90,7 +127,7 @@ assignmentRouter.get('/performance', studentAuth, async (req, res) => {
    }
 });
 
-// INSTRUCTOR ROUTES
+//! INSTRUCTOR ROUTES
 assignmentRouter.use(instructorAuth);
 
 assignmentRouter.post('/add', async (req, res) => {
@@ -104,7 +141,8 @@ assignmentRouter.post('/add', async (req, res) => {
 
    try {
       const [courseResult] = await db.execute(
-         'SELECT * FROM COURSES WHERE instructor_id = ? AND id = ?',
+         `  SELECT * FROM COURSES 
+            WHERE instructor_id = ? AND id = ?`,
          [instructorId, courseId]
       );
       if (courseResult.length === 0) {
@@ -112,7 +150,7 @@ assignmentRouter.post('/add', async (req, res) => {
       }
 
       const [assignmentResult] = await db.execute(
-         'INSERT INTO ASSIGNMENTS (course_id, title, description, due_date, max_marks) VALUES (?, ?, ?, ?, ?)',
+         `INSERT INTO ASSIGNMENTS (course_id, title, description, due_date, max_marks) VALUES (?, ?, ?, ?, ?)`,
          [courseId, assignmentTitle, description, dueDate, maxMarks]
       );
       const assignmentId = assignmentResult.insertId;
@@ -155,10 +193,16 @@ assignmentRouter.get('/', async (req, res) => {
    try {
       const [results] = await db.execute(
          `
-         SELECT a.id AS assignment_id, a.title AS assignment_title, 
-         a.due_date, a.max_marks, c.title AS course_title
+         SELECT
+            a.id AS assignment_id,
+            a.course_id AS course_id,
+            a.title AS assignment_title,
+            a.due_date,
+            a.max_marks,
+            cd.title AS course_title
          FROM ASSIGNMENTS a
          JOIN COURSES c ON a.course_id = c.id
+         JOIN COURSE_DETAILS cd ON cd.course_id = c.id
          WHERE c.instructor_id = ?
          `,
          [instructorId]
