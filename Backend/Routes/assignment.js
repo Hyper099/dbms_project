@@ -12,19 +12,6 @@ assignmentRouter.post('/submit', studentAuth, async (req, res) => {
 
 
    try {
-      // Check if student is enrolled in the course of assignemnt.
-      const [enrollmentResult] = await db.execute(
-         `
-            SELECT * FROM ENROLLMENT
-            WHERE student_id = ? AND course_id IN(
-               SELECT course_id FROM ASSIGNMENTS WHERE id = ?
-            )
-         `
-         ,[studentId,assignmentId]
-      );
-      if (enrollmentResult.length == 0) {
-         return res.status(403).json({ error: 'You are not enrolled in this course.and hence not allowed to give this assignment.' });
-      }
 
       // Check if assignemnt exists.
       const [assignmentResult] = await db.execute(
@@ -35,7 +22,30 @@ assignmentRouter.post('/submit', studentAuth, async (req, res) => {
          return res.status(404).json({ error: 'Assignment not found.' });
       }
 
-      // 
+      // Check if student is enrolled in the course of assignemnt.
+      const [enrollmentResult] = await db.execute(
+         `
+            SELECT * FROM ENROLLMENT
+            WHERE student_id = ? AND course_id IN(
+               SELECT course_id FROM ASSIGNMENTS WHERE id = ?
+            )
+         `
+         , [studentId, assignmentId]
+      );
+      if (enrollmentResult.length == 0) {
+         return res.status(403).json({ error: 'You are not enrolled in this course.and hence not allowed to give this assignment.' });
+      }
+
+      // Check if assignment is already submitted.
+      const [alreadySubmitted] = await db.execute(
+         `SELECT * FROM ASSESSMENTS WHERE student_id = ? AND assignment_id = ?`,
+         [studentId, assignmentId]
+      )
+      if (alreadySubmitted.length > 0) {
+         return res.status(400).json({ error: 'Assignment already submitted.' });
+      }
+      
+
       const [questions] = await db.execute(
          'SELECT id, correct_option_id FROM QUESTIONS WHERE assignment_id = ?',
          [assignmentId]
@@ -65,18 +75,7 @@ assignmentRouter.post('/submit', studentAuth, async (req, res) => {
          });
       });
 
-
-
       const score = parseFloat(((correctAnswers / questions.length) * 100).toFixed(2));
-
-      console.log('VALUES FOR ASSESSMENTS INSERT:', {
-         studentId,
-         assignmentId,
-         score,
-         totalQuestions: questions.length,
-         correctAnswers
-      });
-
 
       const [assessmentResult] = await db.execute(
          'INSERT INTO ASSESSMENTS (student_id, assignment_id, score, total_questions, correct_answers) VALUES (?, ?, ?, ?, ?)',

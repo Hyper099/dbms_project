@@ -14,6 +14,7 @@ import PageNotFound from './Pages/PageNotFound';
 import ProfilePage from './Pages/ProfilePage';
 import InstructorRegistration from './Pages/SignUp/InstructorRegistration';
 import StudentRegistration from './Pages/SignUp/StudentRegistration';
+import { CoursesPage } from './Pages/Courses/Course1';
 
 function App() {
   const location = useLocation();
@@ -35,6 +36,7 @@ function App() {
         <Route path="*" element={<PageNotFound />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/tp" element={<CoursesPage />} />
       </Routes>
     </>
   );
