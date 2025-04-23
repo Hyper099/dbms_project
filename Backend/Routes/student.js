@@ -19,7 +19,7 @@ studentRouter.post("/signup", async (req, res) => {
       }
 
       const { email, password, firstName, lastName } = result.data;
-      // const hashedPassword = await bcrypt.hash(password, 10); //1234567.
+      //! const hashedPassword = await bcrypt.hash(password, 10); //1234567.
 
       const [existingUsers] = await db.execute(
          "SELECT email FROM STUDENT WHERE email = ? UNION SELECT email FROM INSTRUCTOR WHERE email = ?",
