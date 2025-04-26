@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const bcrypt = require("bcrypt");
-const connectDatabase = require("../Database/Database");
+const connectDatabase = require("../Database/database");
 const { SignUpSchema, LoginSchema } = require("../Database/schema");
 const { instructorAuth } = require("../Middleware/authMiddleware");
 

@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Router } = require("express");
 const bcrypt = require("bcrypt");
-const connectDatabase = require("../Database/Database");
+const connectDatabase = require("../Database/database");
 const { SignUpSchema } = require("../Database/schema");
 const { studentAuth } = require("../Middleware/authMiddleware");
 
