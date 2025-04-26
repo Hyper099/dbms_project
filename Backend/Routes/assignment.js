@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { instructorAuth, studentAuth } = require('../Middleware/authMiddleware');
-const connectDatabase = require('../Database/database');
+const connectDatabase = require('../Database/Database');
 
 const assignmentRouter = Router();
 

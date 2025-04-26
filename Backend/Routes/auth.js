@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Router } = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const connectDatabase = require("../Database/database");
+const connectDatabase = require("../Database/Database");
 
 const authRouter = Router();
 

@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const connectDatabase = require("../Database/database");
+const connectDatabase = require("../Database/Database");
 const { studentAuth } = require("../Middleware/authMiddleware");
 const { isCourseExist, isCourseInCart, isStudentEnrolled } = require("../Services/cartService");
 
@@ -83,9 +83,14 @@ cartRouter.get("/", async (req, res) => {
 cartRouter.delete("/", async (req, res) => {
    try {
       const studentId = req.student.id;
-      const { courseId } = req.body;
+      let { courseId } = req.body;
 
-      if (!courseId) return res.status(400).json({ error: "Course ID is required" });
+      // Ensure courseId is a number
+      courseId = Number(courseId);
+
+      if (!courseId || isNaN(courseId)) {
+         return res.status(400).json({ error: "Valid Course ID is required." });
+      }
 
       const db = await connectDatabase();
 
@@ -95,16 +100,17 @@ cartRouter.delete("/", async (req, res) => {
       );
 
       if (result.affectedRows === 0) {
-         return res.status(404).json({ error: "Course not found in cart" });
+         return res.status(404).json({ error: "Course not found in cart." });
       }
 
-      res.status(200).json({ message: "Course removed from cart" });
+      res.status(200).json({ message: "Course removed from cart." });
 
    } catch (error) {
       console.error("Error removing course from cart:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: "Internal server error." });
    }
 });
+
 
 //! GET THE COUNT OF THE ITEMS IN THE CART.
 cartRouter.get("/count", async (req, res) => {

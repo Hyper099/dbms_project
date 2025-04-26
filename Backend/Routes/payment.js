@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Router } = require("express");
 const Razorpay = require("razorpay");
-const connectDatabase = require("../Database/database");
+const connectDatabase = require("../Database/Database");
 const { studentAuth } = require("../Middleware/authMiddleware");
 
 const paymentRouter = Router();

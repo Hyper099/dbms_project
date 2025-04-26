@@ -210,7 +210,7 @@ const InstructorDashboard = ({ user }) => {
 
    return (
       <div className="space-y-6">
-         <h1 className="text-2xl font-bold text-gray-800">Instructor Dashboard</h1>
+         <h1 className="text-2xl font-bold text-gray-800">Instructor Profile</h1>
 
          {/* Metrics */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

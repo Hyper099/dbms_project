@@ -27,6 +27,10 @@ app.use("/api/assignment", assignmentRouter);
 //! not using this route right now.
 // app.use("/api/assessment", assessmentRouter);
 
+
+app.get("/", (req, res) => {
+   res.json({message : "Welcome to EduConnect."})
+})
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

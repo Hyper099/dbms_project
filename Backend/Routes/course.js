@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const connectDatabase = require("../Database/database");
+const connectDatabase = require("../Database/Database");
 const { CourseSchema } = require("../Database/schema");
 const { instructorAuth, studentAuth } = require("../Middleware/authMiddleware");
 
