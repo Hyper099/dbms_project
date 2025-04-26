@@ -13,7 +13,20 @@ const serverless = require('serverless-http');
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+const allowedOrigins = [
+   'http://localhost:5173', 
+   'https://edu-connect-project.vercel.app', 
+ ];
+ app.use(cors({
+   origin: function (origin, callback) {
+     if (!origin || allowedOrigins.includes(origin)) {
+       callback(null, true);
+     } else {
+       callback(new Error('CORS not allowed for this origin'));
+     }
+   },
+   credentials: true
+ }));
 app.use(express.json());
 
 // Routes
